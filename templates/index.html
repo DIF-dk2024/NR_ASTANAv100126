@@ -31,7 +31,7 @@
             </div>
 
             {% if c.description %}
-              <div class="card__desc">{{ c.description }}</div>
+              <div class="card__desc">{{ c.description|linkify }}</div>
             {% endif %}
 
             {% if c.files and c.files|length > 0 %}
@@ -89,7 +89,7 @@
         </div>
 
         {% if c.description %}
-          <div class="card__desc">{{ c.description }}</div>
+          <div class="card__desc">{{ c.description|linkify }}</div>
         {% endif %}
 
         {% if c.files and c.files|length > 0 %}

@@ -178,3 +178,8 @@ body{
 .cta-row{margin-top:12px}
 .special-wrap{display:grid;gap:12px;margin-top:12px}
 .special-panel .card{border-color: rgba(255,159,10,.35)}
+
+
+/* Links inside descriptions */
+.card__desc{overflow-wrap:anywhere}
+.card__desc a{font-size:inherit;color:var(--accent);white-space:normal}

@@ -3,6 +3,7 @@ import json
 import uuid
 import datetime as dt
 import shutil
+import re
 from functools import wraps
 
 from flask import (
@@ -11,6 +12,7 @@ from flask import (
 )
 from werkzeug.utils import secure_filename
 from filelock import FileLock
+from markupsafe import Markup, escape
 
 
 # -----------------------------
@@ -92,9 +94,56 @@ def ensure_special_cards(app: Flask) -> None:
 
 
 
+def linkify_text(text: str):
+    """Convert URLs in plain text to clickable links (safe HTML)."""
+    if text is None:
+        return ""
+    s = str(text)
+
+    # Matches:
+    # - http(s)://...
+    # - www....
+    # - t.me/....
+    # - bare domains like example.com/path
+    url_re = re.compile(r'((?:https?://|www\.)[^\s<]+|t\.me/[^\s<]+|(?:[A-Za-z0-9-]+\.)+[A-Za-z]{2,}(?:/[^\s<]+)?)', re.IGNORECASE)
+
+    out = []
+    last = 0
+    for m in url_re.finditer(s):
+        start, end = m.span()
+        out.append(escape(s[last:start]))
+
+        raw = m.group(0)
+
+        # strip trailing punctuation from the URL
+        trail = ""
+        while raw and raw[-1] in ".,;:!?)\]}>" :
+            trail = raw[-1] + trail
+            raw = raw[:-1]
+
+        href = raw
+        low = href.lower()
+        if low.startswith("www."):
+            href = "https://" + href
+        elif low.startswith("t.me/"):
+            href = "https://" + href
+        elif not re.match(r"^[a-zA-Z][a-zA-Z0-9+.-]*:", href):
+            # bare domain without scheme
+            href = "https://" + href
+
+        out.append(Markup(f'<a href="{escape(href)}" target="_blank" rel="noopener">{escape(raw)}</a>{escape(trail)}'))
+        last = end
+
+    out.append(escape(s[last:]))
+    return Markup("").join(out)
+
+
 
 def create_app() -> Flask:
     app = Flask(__name__)
+
+    # Jinja filter: make pasted URLs clickable
+    app.jinja_env.filters["linkify"] = linkify_text
 
     app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-change-me")
     app.config["ADMIN_PASSWORD"] = os.environ.get("ADMIN_PASSWORD", "")
