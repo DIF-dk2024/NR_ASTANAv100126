@@ -29,6 +29,69 @@ ALLOWED_EXTENSIONS = {
     "doc", "docx", "xls", "xlsx", "ppt", "pptx",
 }
 
+# -----------------------------
+# Special cards shown under 3 CTA buttons on the main page
+# Stored as обычные карточки, но с полем special_key.
+# -----------------------------
+SPECIAL_CARD_SLOTS = [
+    {"key": "telegram", "default_title": "Подписаться в Telegram"},
+    {"key": "analytics", "default_title": "Персональная аналитика"},
+    {"key": "course", "default_title": "Купить курс"},
+]
+
+def now_iso() -> str:
+    return dt.datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
+
+def refresh_card_files(app: Flask, card: dict) -> dict:
+    """Rebuild file URLs from filename so they always work after deploy."""
+    if not card or not isinstance(card, dict):
+        return card
+    cid = card.get("id") or ""
+    files = []
+    for f in (card.get("files") or []):
+        if not isinstance(f, dict):
+            continue
+        name = f.get("name") or ""
+        if not name:
+            continue
+        ext = name.rsplit(".", 1)[-1].lower() if "." in name else ""
+        files.append({
+            "name": name,
+            "ext": ext,
+            "url": url_for("uploaded_file", card_id=cid, filename=name),
+        })
+    card["files"] = files
+    return card
+
+def ensure_special_cards(app: Flask) -> None:
+    """Create the 3 special cards if they don't exist yet."""
+    cards = load_cards(app)
+    existing = {c.get("special_key") for c in cards if c.get("special_key")}
+    used_ids = {c.get("id") for c in cards if c.get("id")}
+
+    for slot in SPECIAL_CARD_SLOTS:
+        key = slot["key"]
+        if key in existing:
+            continue
+
+        # generate unique deterministic-length id (10 hex chars)
+        card_id = uuid.uuid4().hex[:10]
+        while card_id in used_ids:
+            card_id = uuid.uuid4().hex[:10]
+
+        card = {
+            "id": card_id,
+            "created_at": now_iso(),
+            "title": slot["default_title"],
+            "description": "",
+            "files": [],
+            "special_key": key,
+        }
+        append_card(app, card)
+        used_ids.add(card_id)
+
+
+
 
 def create_app() -> Flask:
     app = Flask(__name__)
@@ -42,12 +105,37 @@ def create_app() -> Flask:
     app.config["MAX_CONTENT_LENGTH"] = int(os.environ.get("MAX_CONTENT_LENGTH", str(120 * 1024 * 1024)))  # 120 MB
 
     ensure_dirs(app)
-
+    ensure_special_cards(app)
     @app.route("/")
     def index():
-        cards = load_cards(app)
+        all_cards = load_cards(app)
+
+        special_keys = {s["key"] for s in SPECIAL_CARD_SLOTS}
+        special_cards = {}
+        cards = []
+
+        for c in all_cards:
+            key = c.get("special_key")
+            c = refresh_card_files(app, c)
+            if key in special_keys:
+                special_cards[key] = c
+            else:
+                cards.append(c)
+
         cards.sort(key=lambda x: x.get("created_at", ""), reverse=True)
-        return render_template("index.html", cards=cards, is_admin=is_admin())
+
+        # (на всякий случай) заполняем отсутствующие ключи заглушками,
+        # чтобы шаблон не падал даже при повреждённом хранилище
+        for slot in SPECIAL_CARD_SLOTS:
+            special_cards.setdefault(slot["key"], {
+                "id": "",
+                "title": slot["default_title"],
+                "description": "",
+                "files": [],
+            })
+
+        return render_template("index.html", cards=cards, special_cards=special_cards, is_admin=is_admin())
+
 
     @app.route("/uploads/<card_id>/<path:filename>")
     def uploaded_file(card_id: str, filename: str):
