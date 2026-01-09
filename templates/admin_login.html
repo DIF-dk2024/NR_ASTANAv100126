@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block content %}
+  <section class="section">
+    <h1 class="h1">Админ вход</h1>
+    <p class="muted">Введи пароль администратора (переменная окружения <code>ADMIN_PASSWORD</code>).</p>
+  </section>
+
+  <form class="form" method="post">
+    <label class="label">Пароль</label>
+    <input class="input" type="password" name="password" placeholder="••••••••" required>
+
+    <button class="btn btn-primary" type="submit">Войти</button>
+    <a class="btn" href="{{ url_for('index') }}">Назад</a>
+  </form>
+{% endblock %}

@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block content %}
+  <section class="section">
+    <h1 class="h1">Редактировать карточку</h1>
+    <p class="muted">Изменяй название/описание, добавляй файлы и удаляй вложения.</p>
+  </section>
+
+  <form class="form" method="post" enctype="multipart/form-data">
+    <label class="label">Название</label>
+    <input class="input" type="text" name="title" maxlength="120" value="{{ card.title }}" required>
+
+    <label class="label">Описание</label>
+    <textarea class="textarea" name="description" rows="6" maxlength="2000">{{ card.description }}</textarea>
+
+    <label class="label">Добавить файлы / видео (можно несколько)</label>
+    <input class="input" type="file" name="files" multiple>
+
+    <div class="row">
+      <button class="btn btn-primary" type="submit">Сохранить</button>
+      <a class="btn" href="{{ url_for('index') }}">Назад</a>
+    </div>
+  </form>
+
+  {% if card.files and card.files|length > 0 %}
+    <section class="section">
+      <h2 class="h2">Вложения</h2>
+      <p class="muted small">Удаление вложения не удаляет карточку — только файл.</p>
+    </section>
+
+    <div class="attachments">
+      {% for f in card.files %}
+        {% set ext = f.ext|lower %}
+        <div class="att att-manage">
+          <div class="att-manage__preview">
+            {% if ext in ["jpg","jpeg","png","gif","webp"] %}
+              <a href="{{ f.url }}" target="_blank" rel="noopener">
+                <img src="{{ f.url }}" alt="{{ f.name }}">
+              </a>
+            {% elif ext in ["mp4","webm","mov"] %}
+              <video controls preload="metadata" src="{{ f.url }}"></video>
+            {% else %}
+              <a class="att-file" href="{{ f.url }}" target="_blank" rel="noopener">
+                <span class="att__icon">⬇</span>
+                <span class="att__name">{{ f.name }}</span>
+              </a>
+            {% endif %}
+          </div>
+
+          <div class="att-manage__bar">
+            <div class="att__name">{{ f.name }}</div>
+
+            <form method="post" action="{{ url_for('admin_delete_file', card_id=card.id) }}"
+                  onsubmit="return confirm('Удалить этот файл?');">
+              <input type="hidden" name="filename" value="{{ f.name }}">
+              <button class="btn btn-danger btn-small" type="submit">Удалить файл</button>
+            </form>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <section class="section">
+      <p class="muted">У этой карточки пока нет вложений.</p>
+    </section>
+  {% endif %}
+{% endblock %}

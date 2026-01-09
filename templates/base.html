@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Статистика Квадратных Метров</title>
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='logo.png') }}">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='logo.png') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <header class="header">
+    <div class="container header__row">
+      <div class="brand">
+        <img class="brand__logo" src="{{ url_for('static', filename='logo.png') }}" alt="Logo">
+        <div>
+          <div class="brand__title">Статистика Квадратных Метров</div>
+          <div class="brand__subtitle">Материалы Numerical Research • <a class="link" href="https://numerical-res.onrender.com/" target="_blank" rel="noopener">numerical-res.onrender.com</a></div>
+        </div>
+      </div>
+
+      <nav class="nav">
+        {% if is_admin %}
+          <a class="btn btn-primary" href="{{ url_for('admin_new') }}">Новая карточка</a>
+          <a class="btn" href="{{ url_for('admin_logout') }}">Выйти</a>
+        {% else %}
+          <a class="btn" href="{{ url_for('admin_login') }}">Админ вход</a>
+        {% endif %}
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    {% with messages = get_flashed_messages(with_categories=True) %}
+      {% if messages %}
+        <div class="flash-wrap">
+          {% for category, message in messages %}
+            <div class="flash flash-{{ category|e }}">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="footer">
+    <div class="container footer__row">
+      <div class="muted">Render Disk: /var/data</div>
+    </div>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% block content %}
+  <section class="section">
+    <h1 class="h1">Материалы курса</h1>
+    <p class="muted">Для связи с директором курса <a class="link" href="https://t.me/numresearch" target="_blank" rel="noopener">t.me/numresearch</a></p>
+
+    <div class="row cta-row">
+      <button class="btn btn-primary" type="button" data-special="telegram">подписаться в телеграм</button>
+      <button class="btn btn-primary" type="button" data-special="analytics">персональная аналитика</button>
+      <button class="btn btn-primary" type="button" data-special="course">купить курс</button>
+    </div>
+
+    <div class="special-wrap" id="special-wrap">
+      {% for key in ["telegram","analytics","course"] %}
+        {% set c = special_cards[key] %}
+        <div class="special-panel" data-panel="{{ key }}" style="display:none;">
+          <article class="card">
+            <div class="card__top">
+              <div>
+                <div class="card__title">{{ c.title }}</div>
+                {% if c.created_at %}
+                  <div class="card__meta">{{ c.created_at }}</div>
+                {% endif %}
+              </div>
+
+              {% if is_admin %}
+                <div class="admin-actions">
+                  <a class="btn btn-small" href="{{ url_for('admin_edit', card_id=c.id) }}">Редактировать</a>
+                </div>
+              {% endif %}
+            </div>
+
+            {% if c.description %}
+              <div class="card__desc">{{ c.description }}</div>
+            {% endif %}
+
+            {% if c.files and c.files|length > 0 %}
+              <div class="attachments">
+                {% for f in c.files %}
+                  {% set ext = f.ext|lower %}
+                  {% if ext in ["jpg","jpeg","png","gif","webp"] %}
+                    <a class="att att-img" href="{{ f.url }}" target="_blank" rel="noopener">
+                      <img src="{{ f.url }}" alt="{{ f.name }}">
+                    </a>
+                  {% elif ext in ["mp4","webm","mov"] %}
+                    <div class="att att-video">
+                      <video controls preload="metadata" src="{{ f.url }}"></video>
+                      <div class="att__name">{{ f.name }}</div>
+                    </div>
+                  {% else %}
+                    <a class="att att-file" href="{{ f.url }}" target="_blank" rel="noopener">
+                      <span class="att__icon">⬇</span>
+                      <span class="att__name">{{ f.name }}</span>
+                    </a>
+                  {% endif %}
+                {% endfor %}
+              </div>
+            {% endif %}
+          </article>
+        </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  {% if not cards %}
+    <div class="empty">
+      Пока нет карточек.
+    </div>
+  {% endif %}
+
+  <div class="grid">
+    {% for c in cards %}
+      <article class="card">
+        <div class="card__top">
+          <div>
+            <div class="card__title">{{ c.title }}</div>
+            <div class="card__meta">{{ c.created_at }}</div>
+          </div>
+
+          {% if is_admin %}
+            <div class="admin-actions">
+              <a class="btn btn-small" href="{{ url_for('admin_edit', card_id=c.id) }}">Редактировать</a>
+              <form method="post" action="{{ url_for('admin_delete', card_id=c.id) }}"
+                  onsubmit="return confirm('Удалить карточку навсегда?');">
+              <button class="btn btn-danger" type="submit">Удалить</button>
+              </form>
+            </div>
+          {% endif %}
+        </div>
+
+        {% if c.description %}
+          <div class="card__desc">{{ c.description }}</div>
+        {% endif %}
+
+        {% if c.files and c.files|length > 0 %}
+          <div class="attachments">
+            {% for f in c.files %}
+              {% set ext = f.ext|lower %}
+              {% if ext in ["jpg","jpeg","png","gif","webp"] %}
+                <a class="att att-img" href="{{ f.url }}" target="_blank" rel="noopener">
+                  <img src="{{ f.url }}" alt="{{ f.name }}">
+                </a>
+              {% elif ext in ["mp4","webm","mov"] %}
+                <div class="att att-video">
+                  <video controls preload="metadata" src="{{ f.url }}"></video>
+                  <div class="att__name">{{ f.name }}</div>
+                </div>
+              {% else %}
+                <a class="att att-file" href="{{ f.url }}" target="_blank" rel="noopener">
+                  <span class="att__icon">⬇</span>
+                  <span class="att__name">{{ f.name }}</span>
+                </a>
+              {% endif %}
+            {% endfor %}
+          </div>
+        {% endif %}
+      </article>
+    {% endfor %}
+  </div>
+
+  <script>
+    (function() {
+      function showPanel(key) {
+        const wrap = document.getElementById("special-wrap");
+        if (!wrap) return;
+        let anyShown = false;
+        wrap.querySelectorAll("[data-panel]").forEach(p => {
+          const isTarget = p.getAttribute("data-panel") === key;
+          if (isTarget) {
+            const now = (p.style.display !== "none");
+            // toggle
+            p.style.display = now ? "none" : "block";
+            anyShown = !now;
+          } else {
+            p.style.display = "none";
+          }
+        });
+        if (anyShown) {
+          const el = wrap.querySelector('[data-panel="'+key+'"]');
+          if (el) el.scrollIntoView({behavior:"smooth", block:"start"});
+        }
+      }
+
+      document.querySelectorAll("[data-special]").forEach(btn => {
+        btn.addEventListener("click", () => showPanel(btn.getAttribute("data-special")));
+      });
+    })();
+  </script>
+{% endblock %}
